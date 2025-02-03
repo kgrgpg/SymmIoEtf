@@ -1,6 +1,8 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+// src/kafka/kafka.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Kafka, Producer, Consumer, logLevel, EachMessagePayload } from 'kafkajs';
 import { Observable, Subject } from 'rxjs';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
@@ -8,11 +10,11 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private producer: Producer;
   private consumer: Consumer;
   private messageSubject: Subject<EachMessagePayload> = new Subject();
-  
+
   // Expose an observable for subscribers
   public messages$: Observable<EachMessagePayload> = this.messageSubject.asObservable();
 
-  constructor(private readonly logger: Logger) {
+  constructor(private readonly logger: PinoLogger) {
     // Initialize Kafka client with brokers from environment variables or default localhost
     this.kafka = new Kafka({
       clientId: 'etf-backend',
@@ -26,7 +28,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     await this.producer.connect();
     await this.consumer.connect();
-    this.logger.log('Kafka producer and consumer connected.');
+    this.logger.info('Kafka producer and consumer connected.');
 
     // Subscribe to a topic (configurable via env variable, defaulting to 'etf-topic')
     const topic = process.env.KAFKA_TOPIC || 'etf-topic';
@@ -44,7 +46,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     await this.producer.disconnect();
     await this.consumer.disconnect();
-    this.logger.log('Kafka producer and consumer disconnected.');
+    this.logger.info('Kafka producer and consumer disconnected.');
   }
 
   // Utility method to send messages

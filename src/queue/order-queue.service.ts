@@ -1,18 +1,18 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Queue, Worker, QueueScheduler, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class OrderQueueService implements OnModuleInit {
   private readonly logger = new Logger(OrderQueueService.name);
-  private readonly redisConnection: IORedis.Redis;
+  private readonly redisConnection: Redis;
   private readonly queue: Queue;
   private readonly worker: Worker;
   private readonly scheduler: QueueScheduler;
 
-  constructor() {
+  constructor() {  
     // Initialize Redis connection (using env var REDIS_URL or default)
-    this.redisConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+    this.redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
     // Initialize the BullMQ Queue for order jobs
     this.queue = new Queue('order-queue', {
