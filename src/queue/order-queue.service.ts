@@ -1,46 +1,51 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Queue, Worker, QueueScheduler, Job } from 'bullmq';
 import Redis from 'ioredis';
+import { Observable, Subject } from 'rxjs';
 
 @Injectable()
-export class OrderQueueService implements OnModuleInit {
+export class OrderQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderQueueService.name);
   private readonly redisConnection: Redis;
   private readonly queue: Queue;
   private readonly worker: Worker;
   private readonly scheduler: QueueScheduler;
 
-  constructor() {  
-    // Initialize Redis connection (using env var REDIS_URL or default)
-    this.redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  // RxJS subjects to emit job events
+  private jobCompletedSubject: Subject<Job<any, any, string>> = new Subject();
+  private jobFailedSubject: Subject<{ job: Job<any, any, string>; err: Error }> = new Subject();
 
-    // Initialize the BullMQ Queue for order jobs
-    this.queue = new Queue('order-queue', {
-      connection: this.redisConnection,
-    });
+  // Exposed observables for other parts of the app
+  public readonly jobCompleted$: Observable<Job<any, any, string>> = this.jobCompletedSubject.asObservable();
+  public readonly jobFailed$: Observable<{ job: Job<any, any, string>; err: Error }> = this.jobFailedSubject.asObservable();
 
-    // QueueScheduler ensures proper handling of delayed jobs and retries
-    this.scheduler = new QueueScheduler('order-queue', {
-      connection: this.redisConnection,
-    });
+  constructor() {
+    // Create a Redis connection with the recommended option for BullMQ
+    this.redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+        maxRetriesPerRequest: null,
+      });
 
-    // Create a worker to process jobs sequentially (concurrency set to 1)
+    // Initialize the queue and scheduler
+    this.queue = new Queue('order-queue', { connection: this.redisConnection });
+    this.scheduler = new QueueScheduler('order-queue', { connection: this.redisConnection });
+
+    // Create a worker with concurrency of 1 (sequential processing)
     this.worker = new Worker(
       'order-queue',
       async (job: Job) => this.processJob(job),
-      {
-        connection: this.redisConnection,
-        concurrency: 1, // Enforce sequential processing
-      },
+      { connection: this.redisConnection, concurrency: 1 }
     );
 
-    // Log job completions and failures
-    this.worker.on('completed', (job) => {
+    // Listen for job completion events and push them into our RxJS subject
+    this.worker.on('completed', (job: Job) => {
       this.logger.debug(`Job ${job.id} completed`);
+      this.jobCompletedSubject.next(job);
     });
 
-    this.worker.on('failed', (job, err) => {
-      this.logger.error(`Job ${job?.id} failed: ${err.message}`, err.stack);
+    // Listen for job failure events and push them into our RxJS subject
+    this.worker.on('failed', (job: Job, err: Error) => {
+      this.logger.error(`Job ${job.id} failed: ${err.message}`);
+      this.jobFailedSubject.next({ job, err });
     });
   }
 
@@ -48,12 +53,18 @@ export class OrderQueueService implements OnModuleInit {
     this.logger.log('OrderQueueService initialized');
   }
 
+  async onModuleDestroy() {
+    await this.worker.close();
+    await this.queue.close();
+    await this.scheduler.close();
+    await this.redisConnection.quit();
+  }
+
   /**
    * Adds an order processing job to the queue.
-   * @param data - The data for the order job.
-   * @param opts - Optional BullMQ job options (e.g., delay, attempts).
+   * Returns the created Job (as a Promise), and you can also subscribe to the job events reactively.
    */
-  async addOrderJob(data: any, opts?: any) {
+  async addOrderJob(data: any, opts?: any): Promise<Job<any, any, string>> {
     const job = await this.queue.add('order-job', data, opts);
     this.logger.debug(`Enqueued job ${job.id} with data: ${JSON.stringify(data)}`);
     return job;
@@ -61,15 +72,14 @@ export class OrderQueueService implements OnModuleInit {
 
   /**
    * Processes an order job.
-   * This is where you add your business logic to interact with Binance, update order states, etc.
-   * @param job - The BullMQ Job containing order data.
+   * This function simulates processing by waiting for 1 second.
+   * In a real implementation, you would add your business logic here.
    */
-  async processJob(job: Job) {
+  async processJob(job: Job): Promise<any> {
     this.logger.debug(`Processing job ${job.id} with data: ${JSON.stringify(job.data)}`);
-    // Simulate order processing work (replace with actual order logic)
+    // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Return a result object (can be expanded as needed)
+    // Return some dummy result indicating successful processing
     return { processed: true, jobId: job.id };
   }
 }
