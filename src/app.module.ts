@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { ConfigModule } from '@nestjs/config';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
   imports: [
@@ -10,7 +11,8 @@ import { ConfigModule } from '@nestjs/config';
         level: process.env.LOG_LEVEL || 'info',
       },
     }),
-    // We will add KafkaModule, BullMQModule, and others here later
+    KafkaModule, // Added Kafka integration
+    // Additional modules (BullMQ, PostgreSQL, etc.) will be added later
   ],
   controllers: [],
   providers: [],
