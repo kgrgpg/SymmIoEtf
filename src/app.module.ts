@@ -9,6 +9,8 @@ import { BinanceModule } from './binance/binance.module';
 import { MintOrderModule } from './orders/mint-order.module';
 import { CollateralModule } from './collateral/collateral.module';
 import { QuoteModule } from './quote/quote.module';
+import { AssetPurchaseModule } from './asset-purchase/asset-purchase.module';
+import { MintFlowModule } from './mint-flow/mint-flow.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -24,6 +26,8 @@ import { QuoteModule } from './quote/quote.module';
     MintOrderModule,
     CollateralModule,
     QuoteModule,
+    AssetPurchaseModule,
+    MintFlowModule,
   ],
   controllers: [],
   providers: [],
