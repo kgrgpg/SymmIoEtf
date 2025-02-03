@@ -8,6 +8,7 @@ import { QueueModule } from './queue/queue.module';
 import { BinanceModule } from './binance/binance.module';
 import { MintOrderModule } from './orders/mint-order.module';
 import { CollateralModule } from './collateral/collateral.module';
+import { QuoteModule } from './quote/quote.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -22,6 +23,7 @@ import { CollateralModule } from './collateral/collateral.module';
     BinanceModule,
     MintOrderModule,
     CollateralModule,
+    QuoteModule,
   ],
   controllers: [],
   providers: [],
