@@ -11,6 +11,7 @@ import { CollateralModule } from './collateral/collateral.module';
 import { QuoteModule } from './quote/quote.module';
 import { AssetPurchaseModule } from './asset-purchase/asset-purchase.module';
 import { MintFlowModule } from './mint-flow/mint-flow.module';
+import { MintingModule } from './minting/minting.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -28,6 +29,7 @@ import { MintFlowModule } from './mint-flow/mint-flow.module';
     QuoteModule,
     AssetPurchaseModule,
     MintFlowModule,
+    MintingModule,
   ],
   controllers: [],
   providers: [],

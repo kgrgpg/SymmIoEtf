@@ -18,6 +18,7 @@
         "@nestjs/microservices": "^11.0.0",
         "@nestjs/platform-express": "^11.0.0",
         "bullmq": "^1.60.0",
+        "ethers": "^6.13.5",
         "ioredis": "^5.0.0",
         "kafkajs": "^2.2.4",
         "nestjs-pino": "^4.3.0",
