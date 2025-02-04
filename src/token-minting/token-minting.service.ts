@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JsonRpcProvider, Wallet, Contract, parseUnits } from 'ethers';
 
 @Injectable()
-export class MintingService {
-  private readonly logger = new Logger(MintingService.name);
+export class TokenMintingService {
+  private readonly logger = new Logger(TokenMintingService.name);
   private readonly provider: JsonRpcProvider;
   private readonly signer: Wallet;
   // Replace with your actual contract ABI and address
@@ -13,11 +13,9 @@ export class MintingService {
   private readonly contractAddress = process.env.MINTING_CONTRACT_ADDRESS || '0xYourContractAddress';
 
   constructor() {
-    // Use a live RPC endpoint or testnet RPC URL as needed
     const rpcUrl = process.env.RPC_URL || 'https://eth-goerli.alchemyapi.io/v2/your-api-key';
     this.provider = new JsonRpcProvider(rpcUrl);
-    // Use a secure private key from your environment variables
-    const privateKey = process.env.MINTING_PRIVATE_KEY || '0xYourPrivateKey';
+    const privateKey = process.env.MINTING_PRIVATE_KEY || '';
     this.signer = new Wallet(privateKey, this.provider);
   }
 
@@ -30,10 +28,8 @@ export class MintingService {
     try {
       this.logger.log(`Minting ${amount} tokens to ${to}`);
       const contract = new Contract(this.contractAddress, this.contractAbi, this.signer);
-      // In ethers v6, use parseUnits directly (imported above) instead of ethers.utils.parseUnits
       const tx = await contract.mint(to, parseUnits(amount.toString(), 18));
       this.logger.debug(`Transaction sent: ${tx.hash}`);
-      // Wait for the transaction to be mined
       const receipt = await tx.wait();
       this.logger.log(`Minting transaction confirmed: ${receipt.transactionHash}`);
       return receipt;

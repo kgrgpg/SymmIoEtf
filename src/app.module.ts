@@ -1,4 +1,3 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
@@ -10,8 +9,9 @@ import { MintOrderModule } from './orders/mint-order.module';
 import { CollateralModule } from './collateral/collateral.module';
 import { QuoteModule } from './quote/quote.module';
 import { AssetPurchaseModule } from './asset-purchase/asset-purchase.module';
-import { MintFlowModule } from './mint-flow/mint-flow.module';
-import { MintingModule } from './minting/minting.module';
+import { ETFMintProcessModule } from './etf-mint-process/etf-mint-process.module';
+import { TokenMintingModule } from './token-minting/token-minting.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -28,8 +28,8 @@ import { MintingModule } from './minting/minting.module';
     CollateralModule,
     QuoteModule,
     AssetPurchaseModule,
-    MintFlowModule,
-    MintingModule,
+    ETFMintProcessModule,
+    TokenMintingModule,
   ],
   controllers: [],
   providers: [],

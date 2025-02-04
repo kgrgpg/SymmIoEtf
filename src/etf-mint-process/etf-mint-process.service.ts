@@ -6,8 +6,8 @@ import { Observable, of } from 'rxjs';
 import { mergeMap, map, catchError } from 'rxjs/operators';
 
 @Injectable()
-export class MintFlowService {
-  private readonly logger = new Logger(MintFlowService.name);
+export class ETFMintProcessService {
+  private readonly logger = new Logger(ETFMintProcessService.name);
 
   constructor(
     private readonly collateralService: CollateralService,
@@ -16,31 +16,37 @@ export class MintFlowService {
   ) {}
 
   /**
-   * Orchestrates the full mint flow:
-   * 1. Lock collateral for the user.
-   * 2. Generate a quote based on the locked collateral and asset weights.
-   * 3. Purchase underlying assets using the generated quote.
+   * Orchestrates the full mint process:
+   * 1. Either verifies existing collateral or locks new collateral.
+   * 2. Generates a quote based on collateral and asset weights.
+   * 3. Purchases underlying assets using the generated quote.
    *
    * @param userId The user identifier.
-   * @param collateral The collateral amount to lock.
+   * @param collateral The collateral amount.
    * @param assets An array of assets with symbol and weight.
+   * @param verifyFirst If true, verifies existing collateral; otherwise, locks new collateral.
    */
-  initiateMintFlow(
+  initiateMintProcess(
     userId: string,
     collateral: number,
     assets: { symbol: string; weight: number }[],
+    verifyFirst: boolean = false,
   ): Observable<any> {
-    return this.collateralService.lockCollateral(userId, collateral).pipe(
-      mergeMap(lockResult => {
-        this.logger.debug(`Collateral locked: ${JSON.stringify(lockResult)}`);
+    // Explicitly type the collateral observable as Observable<any>
+    const collateral$: Observable<any> = verifyFirst
+      ? this.collateralService.verifyCollateral(userId)
+      : this.collateralService.lockCollateral(userId, collateral);
+
+    return collateral$.pipe(
+      mergeMap((lockResult: any): Observable<any> => {
+        this.logger.debug(`Collateral step complete: ${JSON.stringify(lockResult)}`);
         return this.quoteService.generateQuote(collateral, assets).pipe(
-          mergeMap((quote: Quote) => {
+          mergeMap((quote: Quote): Observable<any> => {
             this.logger.debug(`Quote generated: ${JSON.stringify(quote)}`);
-            // Create purchase data using collateral, assets, and the quote ID.
             const purchaseData = { collateral, assets, quoteId: quote.quoteId };
             return this.assetPurchaseService.purchaseAssets(purchaseData).pipe(
-              map(purchaseResult => ({
-                collateralLock: lockResult,
+              map((purchaseResult: any): any => ({
+                collateralStep: lockResult,
                 quote,
                 assetPurchase: purchaseResult,
               }))
@@ -48,8 +54,8 @@ export class MintFlowService {
           })
         );
       }),
-      catchError(err => {
-        this.logger.error(`Error in mint flow: ${err.message}`);
+      catchError((err: any) => {
+        this.logger.error(`Error in mint process: ${err.message}`);
         return of({ error: err.message });
       })
     );
